@@ -4,9 +4,12 @@ import { GameBoard } from './components/GameBoard';
 import { NextPiece } from './components/NextPiece';
 import { ScoreBoard } from './components/ScoreBoard';
 import { GameControls } from './components/GameControls';
+import { MobileControls } from './components/MobileControls';
 import { useGameState } from './hooks/useGameState';
 import { useGameLoop } from './hooks/useGameLoop';
 import { useKeyboardControls } from './hooks/useKeyboardControls';
+import { useMobileDetection } from './hooks/useMobileDetection';
+import { useTouchControls } from './hooks/useTouchControls';
 
 function App() {
   const {
@@ -16,6 +19,9 @@ function App() {
     getGhostPiecePosition,
     setEffects,
   } = useGameState();
+
+  // Mobile detection
+  const { isTouchDevice } = useMobileDetection();
 
   // Initialize the game on first load - only once
   useEffect(() => {
@@ -39,6 +45,17 @@ function App() {
   }), [actions.moveLeft, actions.moveRight, actions.rotate, actions.softDrop, actions.hardDrop, actions.togglePause]);
 
   useKeyboardControls(keyboardActions, !gameState.isGameOver);
+
+  // Touch controls for mobile
+  const touchActions = useMemo(() => ({
+    moveLeft: actions.moveLeft,
+    moveRight: actions.moveRight,
+    rotate: actions.rotate,
+    softDrop: actions.softDrop,
+    hardDrop: actions.hardDrop,
+  }), [actions.moveLeft, actions.moveRight, actions.rotate, actions.softDrop, actions.hardDrop]);
+
+  useTouchControls(touchActions, !gameState.isGameOver && !gameState.isPaused);
 
   const ghostPiece = getGhostPiecePosition();
 
@@ -88,6 +105,26 @@ function App() {
             <h2>Paused</h2>
             <p>Press P to resume or click the Resume button</p>
           </div>
+        </div>
+      )}
+
+      {/* Mobile controls for touch devices */}
+      {isTouchDevice && (
+        <MobileControls
+          onMoveLeft={actions.moveLeft}
+          onMoveRight={actions.moveRight}
+          onRotate={actions.rotate}
+          onSoftDrop={actions.softDrop}
+          onHardDrop={actions.hardDrop}
+          onPause={actions.togglePause}
+          isGameActive={!gameState.isGameOver && !gameState.isPaused}
+        />
+      )}
+
+      {/* Touch gesture hint for mobile users */}
+      {isTouchDevice && !gameState.isGameOver && (
+        <div className="touch-hint">
+          Swipe: Move • Tap: Rotate • Long Press: Hard Drop
         </div>
       )}
     </div>
