@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import type { GameState } from '../types/tetris';
 
 interface UseGameLoopProps {
@@ -11,26 +11,55 @@ export const useGameLoop = ({ gameState, onDrop, onUpdateEffects }: UseGameLoopP
   const gameLoopRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const lastDropTimeRef = useRef<number>(0);
+  const isRunningRef = useRef<boolean>(false);
+  
+  // Store the latest functions in refs to avoid recreating the game loop
+  const onDropRef = useRef(onDrop);
+  const onUpdateEffectsRef = useRef(onUpdateEffects);
+  const gameStateRef = useRef(gameState);
+  
+  // Update refs when props change
+  onDropRef.current = onDrop;
+  onUpdateEffectsRef.current = onUpdateEffects;
+  gameStateRef.current = gameState;
 
-  useEffect(() => {
-    if (gameState.isGameOver || gameState.isPaused) {
-      if (gameLoopRef.current) {
-        cancelAnimationFrame(gameLoopRef.current);
-      }
-      return;
+  const stopGameLoop = useCallback(() => {
+    if (gameLoopRef.current) {
+      cancelAnimationFrame(gameLoopRef.current);
+      gameLoopRef.current = 0;
     }
+    isRunningRef.current = false;
+  }, []);
+
+  const startGameLoop = useCallback(() => {
+    if (isRunningRef.current) {
+      return; // Already running
+    }
+    
+    isRunningRef.current = true;
+    lastDropTimeRef.current = performance.now();
 
     const gameLoop = (currentTime: number) => {
+      // Check if we should still be running
+      if (!isRunningRef.current || gameStateRef.current.isGameOver || gameStateRef.current.isPaused) {
+        stopGameLoop();
+        return;
+      }
+
       lastTimeRef.current = currentTime;
 
-      // Handle automatic piece dropping
-      if (currentTime - lastDropTimeRef.current >= gameState.dropTime) {
-        onDrop();
+      // Handle automatic piece dropping with more stable timing
+      if (currentTime - lastDropTimeRef.current >= gameStateRef.current.dropTime) {
+        onDropRef.current();
         lastDropTimeRef.current = currentTime;
       }
 
-      // Update particle effects
-      onUpdateEffects((prev: any) => {
+      // Update particle effects only if there are effects to update
+      onUpdateEffectsRef.current((prev: any) => {
+        if (prev.particles.length === 0 && prev.lineClears.length === 0 && prev.screenShake <= 0) {
+          return prev; // No changes needed
+        }
+
         const updatedParticles = prev.particles
           .map((particle: any) => ({
             ...particle,
@@ -46,7 +75,7 @@ export const useGameLoop = ({ gameState, onDrop, onUpdateEffects }: UseGameLoopP
           (effect: any) => currentTime - effect.timestamp < 500
         );
 
-        const newScreenShake = Math.max(0, prev.screenShake - 0.5);
+        const newScreenShake = Math.max(0, prev.screenShake - 0.8); // Faster shake decay
 
         return {
           particles: updatedParticles,
@@ -59,11 +88,15 @@ export const useGameLoop = ({ gameState, onDrop, onUpdateEffects }: UseGameLoopP
     };
 
     gameLoopRef.current = requestAnimationFrame(gameLoop);
+  }, [stopGameLoop]);
 
-    return () => {
-      if (gameLoopRef.current) {
-        cancelAnimationFrame(gameLoopRef.current);
-      }
-    };
-  }, [gameState.isGameOver, gameState.isPaused, gameState.dropTime, onDrop, onUpdateEffects]);
+  useEffect(() => {
+    if (gameState.isGameOver || gameState.isPaused) {
+      stopGameLoop();
+    } else {
+      startGameLoop();
+    }
+
+    return stopGameLoop;
+  }, [gameState.isGameOver, gameState.isPaused, startGameLoop, stopGameLoop]);
 };

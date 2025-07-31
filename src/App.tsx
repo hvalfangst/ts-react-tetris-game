@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import './App.css';
 import { GameBoard } from './components/GameBoard';
 import { NextPiece } from './components/NextPiece';
@@ -17,10 +17,10 @@ function App() {
     setEffects,
   } = useGameState();
 
-  // Initialize the game on first load
+  // Initialize the game on first load - only once
   useEffect(() => {
     actions.initGame();
-  }, [actions]);
+  }, []); // Empty dependency array - only run once
 
   useGameLoop({
     gameState,
@@ -28,17 +28,17 @@ function App() {
     onUpdateEffects: setEffects,
   });
 
-  useKeyboardControls(
-    {
-      moveLeft: actions.moveLeft,
-      moveRight: actions.moveRight,
-      rotate: actions.rotate,
-      softDrop: actions.softDrop,
-      hardDrop: actions.hardDrop,
-      togglePause: actions.togglePause,
-    },
-    !gameState.isGameOver
-  );
+  // Memoize keyboard actions to prevent recreating them on every render
+  const keyboardActions = useMemo(() => ({
+    moveLeft: actions.moveLeft,
+    moveRight: actions.moveRight,
+    rotate: actions.rotate,
+    softDrop: actions.softDrop,
+    hardDrop: actions.hardDrop,
+    togglePause: actions.togglePause,
+  }), [actions.moveLeft, actions.moveRight, actions.rotate, actions.softDrop, actions.hardDrop, actions.togglePause]);
+
+  useKeyboardControls(keyboardActions, !gameState.isGameOver);
 
   const ghostPiece = getGhostPiecePosition();
 
