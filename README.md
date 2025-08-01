@@ -1,17 +1,11 @@
 # Tetris Game
 
-A web-based Tetris implementation using React and TypeScript. Features include particle effects, sound, and smooth animations.
+A web-based Tetris implementation using React and TypeScript. 
 
-[Play the game here](https://hvalfangst.github.io/tetris/)
+Automatically deployed to GitHub Pages via [WorkFlows script](.github/workflows/deploy.yml) on pushes to the `main`.
 
-## What's included
+The game can be played by accessing the following URL: https://hvalfangst.github.io/tetris
 
-- All 7 classic Tetris pieces with proper rotation
-- Ghost piece preview showing where your piece will land
-- Line clearing with particle effects and screen shake
-- Progressive difficulty (speed increases with level)
-- Sound effects for moves, drops, and line clears
-- Responsive design that works on mobile
 
 ## Controls
 
@@ -27,17 +21,3 @@ cd tetris
 npm install
 npm run dev
 ```
-
-## Building
-
-```bash
-npm run build
-```
-
-## Technical details
-
-Built with React 19 and TypeScript, using Vite for the build system. Game logic is separated into custom hooks for state management, keyboard controls, and the main game loop. Sound effects use the Web Audio API.
-
-## Deployment
-
-Automatically deploys to GitHub Pages via GitHub Actions when pushing to main branch.
